@@ -40,6 +40,7 @@ const messageSchema = new mongoose.Schema({
       "HALF_DAY_LEAVE",
       "LATE_TO_OFFICE",
       "LEAVING_EARLY",
+      "OOO",
       "OTHER",
     ],
     required: true,
