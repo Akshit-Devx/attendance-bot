@@ -20,10 +20,22 @@ mongoose
 
 // Define a Mongoose Schema
 const messageSchema = new mongoose.Schema({
-  userId: String,
-  channelId: String,
-  text: String,
-  timestamp: String,
+  userId: { type: String, required: true },
+  userName: { type: String, required: true },
+  channelId: { type: String, required: true },
+  message: { type: String, required: true },
+  category: {
+    type: String,
+    enum: [
+      "WFH",
+      "FULL DAY LEAVE",
+      "HALF DAY LEAVE",
+      "LATE TO OFFICE",
+      "LEAVING EARLY",
+    ],
+    required: true,
+  },
+  timestamp: { type: Date, default: Date.now },
 });
 const Message = mongoose.model("Message", messageSchema);
 
