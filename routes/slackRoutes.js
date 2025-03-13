@@ -1,7 +1,7 @@
 import express from "express";
 import Message from "../models/messageModel.js";
 import { analyzeCategory } from "../services/openai.js";
-import { getUserInfo } from "../models/slackService.js";
+import { getUserInfo } from "../services/slackService.js";
 
 const router = express.Router();
 
