@@ -1,9 +1,11 @@
-require("dotenv").config();
-const express = require("express");
-const bodyParser = require("body-parser");
-const { WebClient } = require("@slack/web-api");
-const crypto = require("crypto");
-const mongoose = require("mongoose");
+import dotenv from "dotenv";
+dotenv.config();
+import express from "express";
+import bodyParser from "body-parser";
+import { WebClient } from "@slack/web-api";
+import crypto from "crypto";
+import mongoose from "mongoose";
+import { analyzeCategory } from "./services/openai.js";
 
 const app = express();
 const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
@@ -15,15 +17,15 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log("MongoDB Connection Error:", err));
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
-// Define a Mongoose Schema
+// Define Mongoose Schema
 const messageSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   userName: { type: String, required: true },
   channelId: { type: String, required: true },
-  message: { type: String, required: true }, // Always holds the latest message
+  message: { type: String, required: true }, // Latest message
   updatedMessages: [
     {
       text: { type: String, required: true },
@@ -48,47 +50,33 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model("Message", messageSchema);
 
-// Middleware to verify Slack requests
 app.use(bodyParser.json());
 
+// Slack Request Verification Middleware
 app.use((req, res, next) => {
   const signature = req.headers["x-slack-signature"];
   const timestamp = req.headers["x-slack-request-timestamp"];
   const body = JSON.stringify(req.body);
-
   const baseString = `v0:${timestamp}:${body}`;
   const hmac = crypto.createHmac("sha256", process.env.SLACK_SIGNING_SECRET);
   hmac.update(baseString);
   const computedSignature = `v0=${hmac.digest("hex")}`;
 
   if (signature !== computedSignature) {
-    return res.status(400).send("Invalid request signature");
+    return res.status(400).send("❌ Invalid request signature");
   }
   next();
 });
 
-// Function to determine category based on text
-const determineCategory = (text) => {
-  const lowerText = text.toLowerCase();
-  if (lowerText.includes("wfh")) return "WFH";
-  if (lowerText.includes("leave")) return "FULL_DAY_LEAVE";
-  if (lowerText.includes("half day")) return "HALF_DAY_LEAVE";
-  if (lowerText.includes("late")) return "LATE_TO_OFFICE";
-  if (lowerText.includes("early")) return "LEAVING_EARLY";
-  return "OTHER";
-};
-
 // Slack Event Endpoint
 app.post("/slack/events", async (req, res) => {
-  console.log("request received", req.body);
+  console.log("📥 Slack Event Received:", req.body);
   const { type, event } = req.body;
 
-  // Slack URL verification challenge
   if (type === "url_verification") {
     return res.status(200).send({ challenge: req.body.challenge });
   }
 
-  // Handle new messages
   if (event && event.type === "message" && !event.bot_id) {
     console.log(`📝 New message from ${event.user}: ${event.text}`);
 
@@ -96,7 +84,7 @@ app.post("/slack/events", async (req, res) => {
       const userInfo = await slackClient.users.info({ user: event.user });
       const userName = userInfo.user.real_name || userInfo.user.name;
 
-      const detectedCategory = determineCategory(event.text);
+      const detectedCategory = await analyzeCategory(event.text);
 
       const newMessage = new Message({
         userId: event.user,
@@ -115,7 +103,6 @@ app.post("/slack/events", async (req, res) => {
     }
   }
 
-  // Handle edited messages
   if (event && event.subtype === "message_changed") {
     console.log(`✏️ Message Edited: ${event.message.text}`);
 
@@ -125,15 +112,13 @@ app.post("/slack/events", async (req, res) => {
       });
 
       if (existingMessage) {
-        // Move old message to updatedMessages array
         existingMessage.updatedMessages.push({
           text: existingMessage.message,
           updatedAt: new Date(),
         });
 
-        // Update latest message and category
         existingMessage.message = event.message.text;
-        existingMessage.category = determineCategory(event.message.text);
+        existingMessage.category = await analyzeCategory(event.message.text);
         existingMessage.lastUpdated = new Date();
 
         await existingMessage.save();
@@ -149,7 +134,7 @@ app.post("/slack/events", async (req, res) => {
   res.status(200).send("OK");
 });
 
-// Start server
+// Start Server
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
