@@ -22,8 +22,8 @@ You are a classifier for Slack messages. Categorize the message into one of the 
 
 ### **Important Notes:**
 - If the message contains "leave" or "on leave", classify it as FULL_DAY_LEAVE.
-- If the message mentions "half day", classify it as HALF_DAY_LEAVE.
-- If the message says "late" or "coming late", classify it as LATE_TO_OFFICE.
+- If the message mentions "half day" or "will be there in second half" or "not available in first half", classify it as HALF_DAY_LEAVE.
+- If the message says "late" or "coming late" or "will be there", classify it as LATE_TO_OFFICE.
 - If the message contains "early leave" or "leaving early", classify it as LEAVING_EARLY.
 - If the message contains "WFH", classify it as WFH.
 - If the message contains "OOO" or "Out of Office", classify it as OOO.
@@ -35,7 +35,7 @@ Return only the category name, nothing else.
     console.log(process.env.OPENAI_API_KEY);
 
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Ensure you're using GPT-4 for better accuracy
+      model: "gpt-4", // Ensure you're using GPT-4 for better accuracy
       messages: [{ role: "system", content: prompt }],
       temperature: 0.1, // Lower temperature for consistent output
     });
