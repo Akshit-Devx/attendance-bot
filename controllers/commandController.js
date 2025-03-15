@@ -1,5 +1,5 @@
 import { getAttendanceStats, getUserAttendanceForDate } from "../services/attendance/index.js";
-import { getDateRangeAttendance, parseMessageForDateRange } from "../services/reportService.js";
+import { getDateRangeAttendance, parseMessageForDateRange } from "../services/report/index.js";
 import { getHelpMessage, sendSlackMessage } from "../services/slack/index.js";
 
 /**
