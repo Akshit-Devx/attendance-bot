@@ -54,3 +54,28 @@ export const parseDateString = (dateStr, year = new Date().getFullYear()) => {
     return null;
   }
 };
+
+/**
+ * Format a date range in a human-readable way
+ */
+export const formatDateRange = (startDate, endDate) => {
+  // If dates are the same, just show one date
+  if (startDate.toDateString() === endDate.toDateString()) {
+    return startDate.toLocaleDateString();
+  }
+
+  // Otherwise show the range
+  return `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+};
+
+/**
+ * Check if a date is today
+ */
+export const isToday = (date) => {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+};

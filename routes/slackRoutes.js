@@ -56,9 +56,30 @@ router.post("/events", async (req, res) => {
           const { startDate, endDate, dateText } = parseMessageForDateRange(event.text);
 
           if (startDate && endDate) {
+            // Format the date range for display
+            const today = new Date();
+            const isForToday =
+              startDate.getDate() === today.getDate() &&
+              startDate.getMonth() === today.getMonth() &&
+              startDate.getFullYear() === today.getFullYear() &&
+              endDate.getDate() === today.getDate() &&
+              endDate.getMonth() === today.getMonth() &&
+              endDate.getFullYear() === today.getFullYear();
+
+            // Generate title based on date range
+            let title = isForToday
+              ? "*Today's Attendance Report*\n"
+              : `*Attendance Report ${dateText}*\n`;
+
             // Get attendance report for the date range
             const report = await getDateRangeAttendance(startDate, endDate);
-            await sendSlackMessage(event.channel, `*Attendance Report ${dateText}*\n${report}`);
+            await sendSlackMessage(event.channel, `${title}${report}`);
+            return;
+          } else {
+            await sendSlackMessage(
+              event.channel,
+              "I couldn't understand the date range. Please try something like `@attendance report today` or `@attendance report from 4th March to 10th March`."
+            );
             return;
           }
         }
