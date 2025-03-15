@@ -3,6 +3,7 @@ import Message from "../models/messageModel.js";
 import { analyzeCategory } from "../services/openai.js";
 import {
   getAttendanceStats,
+  getHelpMessage,
   getUserInfo,
   sendSlackMessage,
 } from "../services/slackService.js";
@@ -37,6 +38,14 @@ router.post("/events", async (req, res) => {
 
       // Check if bot is mentioned
       if (event.text.includes(`<@${process.env.SLACK_BOT_ID}>`)) {
+        // Check if it's a help command
+        if (event.text.toLowerCase().includes("help")) {
+          console.log("🆘 Help command received");
+          const helpMessage = getHelpMessage();
+          await sendSlackMessage(event.channel, helpMessage);
+          return;
+        }
+
         const mentionedUserMatch = event.text.match(/<@(\w+)>/g);
         console.log("mentionedUserMatch>>", mentionedUserMatch);
 
