@@ -9,10 +9,10 @@ I'm your friendly Attendance Bot! I automatically track attendance-related messa
 
 *Commands:*
 • \`@attendance help\` - Display this help message
-• \`@attendance @user\` - Get overall attendance stats for a specific user
+• \`@attendance @user\` - Get current month's attendance stats for a specific user
 • \`@attendance @user today\` - Get user's attendance for today
 • \`@attendance @user yesterday\` - Get user's attendance for yesterday 
-• \`@attendance @user from 4th March to 10th March\` - Get user's attendance for a date range
+• \`@attendance @user from 4th March to 10th March\` - Get user's attendance for a specific date range
 • \`@attendance report today\` - Get today's attendance report for all users
 • \`@attendance report yesterday\` - Get yesterday's attendance report
 • \`@attendance report tomorrow\` - Get tomorrow's attendance report

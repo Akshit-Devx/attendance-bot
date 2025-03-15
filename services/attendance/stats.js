@@ -2,11 +2,59 @@ import Message from "../../models/messageModel.js";
 import { getUserInfo } from "../slack/users.js";
 
 /**
- * Get attendance statistics for a specific user
+ * Get attendance statistics for a specific user, filtered by month
+ * If no month is provided, defaults to current month
  */
-export const getAttendanceStats = async (userId) => {
+export const getAttendanceStats = async (
+  userId,
+  month = new Date().getMonth(),
+  year = new Date().getFullYear()
+) => {
   try {
-    const messages = await Message.find({ userId }).sort({ timestamp: -1 }).limit(30);
+    // Create date range for the specified month
+    const startOfMonth = new Date(year, month, 1);
+    const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999); // Last day of month
+
+    console.log(
+      `📅 Fetching stats for period: ${startOfMonth.toISOString()} to ${endOfMonth.toISOString()}`
+    );
+
+    // Query messages within the month
+    const messages = await Message.find({
+      userId,
+      timestamp: {
+        $gte: startOfMonth,
+        $lte: endOfMonth,
+      },
+    }).sort({ timestamp: -1 });
+
+    // Query multi-day leaves that overlap with this month
+    const multiDayLeaves = await Message.find({
+      userId,
+      category: "MULTI_DAY_LEAVE",
+      $or: [
+        // Leave starts before/during month and ends during/after month
+        {
+          leaveStartDate: { $lte: endOfMonth },
+          leaveEndDate: { $gte: startOfMonth },
+        },
+        // Leave without specific dates but message is within month
+        {
+          leaveStartDate: null,
+          leaveEndDate: null,
+          timestamp: {
+            $gte: startOfMonth,
+            $lte: endOfMonth,
+          },
+        },
+      ],
+    });
+
+    // Combine all relevant messages
+    const allMessages = [
+      ...messages,
+      ...multiDayLeaves.filter((msg) => !messages.some((m) => m.messageId === msg.messageId)),
+    ];
 
     let stats = {
       WFH: 0,
@@ -20,7 +68,7 @@ export const getAttendanceStats = async (userId) => {
     };
 
     // Count occurrences by category
-    messages.forEach((msg) => {
+    allMessages.forEach((msg) => {
       if (stats.hasOwnProperty(msg.category)) {
         stats[msg.category] += 1;
       }
@@ -28,8 +76,8 @@ export const getAttendanceStats = async (userId) => {
 
     // Get user name
     let userName = "Unknown User";
-    if (messages.length > 0) {
-      userName = messages[0].userName;
+    if (allMessages.length > 0) {
+      userName = allMessages[0].userName;
     } else {
       try {
         const userInfo = await getUserInfo(userId);
@@ -39,13 +87,16 @@ export const getAttendanceStats = async (userId) => {
       }
     }
 
-    // Get multi-day leave details
-    const multiDayLeaves = messages.filter(
+    // Get multi-day leave details (only those that overlap with the selected month)
+    const multiDayLeavesFiltered = allMessages.filter(
       (msg) => msg.category === "MULTI_DAY_LEAVE" && msg.leaveStartDate && msg.leaveEndDate
     );
 
+    // Get month name for the report title
+    const monthName = new Date(year, month).toLocaleString("default", { month: "long" });
+
     // Build the report
-    return buildStatsReport(userName, stats, multiDayLeaves);
+    return buildStatsReport(userName, stats, multiDayLeavesFiltered, monthName, year);
   } catch (error) {
     console.error("❌ Error fetching attendance stats:", error);
     return "Error fetching attendance data";
@@ -55,8 +106,8 @@ export const getAttendanceStats = async (userId) => {
 /**
  * Build a formatted stats report
  */
-function buildStatsReport(userName, stats, multiDayLeaves) {
-  let report = `*Attendance Stats for ${userName}*\n\n`;
+function buildStatsReport(userName, stats, multiDayLeaves, monthName, year) {
+  let report = `*Attendance Stats for ${userName} - ${monthName} ${year}*\n\n`;
   report += `• *WFH:* ${stats.WFH} days\n`;
   report += `• *Full Day Leaves:* ${stats.FULL_DAY_LEAVE} days\n`;
   report += `• *Half Day Leaves:* ${stats.HALF_DAY_LEAVE} days\n`;
@@ -67,8 +118,8 @@ function buildStatsReport(userName, stats, multiDayLeaves) {
 
   // Add details of multi-day leaves if any
   if (multiDayLeaves.length > 0) {
-    report += "\n*Recent Multi-Day Leave Periods:*\n";
-    multiDayLeaves.slice(0, 5).forEach((leave) => {
+    report += "\n*Multi-Day Leave Periods:*\n";
+    multiDayLeaves.forEach((leave) => {
       const start = leave.leaveStartDate.toLocaleDateString();
       const end = leave.leaveEndDate.toLocaleDateString();
       report += `• ${start} to ${end}\n`;

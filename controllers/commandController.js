@@ -69,9 +69,12 @@ export const handleUserStatsCommand = async (event, mentionedUserId) => {
     const report = await getUserAttendanceForDate(mentionedUserId, startDate, endDate);
     await sendSlackMessage(event.channel, report);
   } else {
-    // Regular user stats (all time)
-    console.log(`📊 Getting general attendance stats for user ${mentionedUserId}`);
-    const attendanceStats = await getAttendanceStats(mentionedUserId);
+    // Regular user stats (default to current month)
+    console.log(`📊 Getting current month attendance stats for user ${mentionedUserId}`);
+    // Use the current month and year
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const attendanceStats = await getAttendanceStats(mentionedUserId, currentMonth, currentYear);
     await sendSlackMessage(event.channel, attendanceStats);
   }
   return true;
