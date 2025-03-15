@@ -1,14 +1,8 @@
-import dotenv from "dotenv";
-import { OpenAI } from "openai";
-
-dotenv.config();
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-export const analyzeCategory = async (message) => {
-  console.log("analyzeCategory>>", message);
-  try {
-    const prompt = `
+/**
+ * Get the prompt for category analysis
+ */
+export const getCategoryPrompt = (message) => {
+  return `
 You are a classifier for Slack messages about attendance and leave. Categorize the message into one of the following:
 - WFH (Working from Home)
 - FULL_DAY_LEAVE (Taking a full day leave)
@@ -62,25 +56,13 @@ You are a classifier for Slack messages about attendance and leave. Categorize t
 
 Return only the category name (WFH, FULL_DAY_LEAVE, HALF_DAY_LEAVE, LATE_TO_OFFICE, LEAVING_EARLY, OOO, MULTI_DAY_LEAVE, or OTHER), nothing else.
 `;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "system", content: prompt }],
-      temperature: 0.1, // Low temperature for consistent results
-    });
-
-    const category = response.choices[0].message.content.trim();
-    console.log("✅ Detected category:", category);
-    return category;
-  } catch (error) {
-    console.error("❌ OpenAI Error:", error);
-    return "OTHER";
-  }
 };
 
-export const extractDateRange = async (message) => {
-  try {
-    const prompt = `
+/**
+ * Get the prompt for date range extraction
+ */
+export const getDateRangePrompt = (message) => {
+  return `
 You are an AI assistant that extracts date ranges from leave messages. Given a message about taking leave, identify the start date and end date of the leave period.
 
 Message: "${message}"
@@ -111,39 +93,4 @@ If you cannot determine the dates, return:
 
 Important: Return ONLY the JSON string and nothing else.
 `;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4", // Or "gpt-3.5-turbo" if needed
-      messages: [{ role: "system", content: prompt }],
-      temperature: 0.1,
-      // Remove response_format parameter as it's not supported by all models
-    });
-
-    // Parse the response text as JSON
-    const responseText = response.choices[0].message.content.trim();
-
-    // Try to extract JSON from the response
-    let jsonStr = responseText;
-
-    // Handle cases where GPT may add extra text around the JSON
-    if (responseText.includes("{") && responseText.includes("}")) {
-      jsonStr = responseText.substring(
-        responseText.indexOf("{"),
-        responseText.lastIndexOf("}") + 1
-      );
-    }
-
-    try {
-      const result = JSON.parse(jsonStr);
-      console.log("✅ Extracted date range:", result);
-      return result;
-    } catch (parseError) {
-      console.error("❌ Error parsing JSON from OpenAI response:", parseError);
-      console.log("Response received:", responseText);
-      return { startDate: null, endDate: null };
-    }
-  } catch (error) {
-    console.error("❌ OpenAI Error extracting date range:", error);
-    return { startDate: null, endDate: null };
-  }
 };

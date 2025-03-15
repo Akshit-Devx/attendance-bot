@@ -1,5 +1,5 @@
 import Message from "../models/messageModel.js";
-import { analyzeCategory, extractDateRange } from "../services/openai.js";
+import { analyzeCategory, extractDateRange } from "../services/openai/index.js";
 import { sendThreadMessage } from "../services/slack/index.js";
 
 /**
