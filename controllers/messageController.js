@@ -1,6 +1,6 @@
 import Message from "../models/messageModel.js";
 import { analyzeCategory, extractDateRange } from "../services/openai.js";
-import { sendThreadMessage } from "../services/slackService.js";
+import { sendThreadMessage } from "../services/slack/index.js";
 
 /**
  * Process a new message and save it to the database

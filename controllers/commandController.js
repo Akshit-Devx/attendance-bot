@@ -1,6 +1,6 @@
-import { getAttendanceStats, getUserAttendanceForDate } from "../services/attendanceService.js";
+import { getAttendanceStats, getUserAttendanceForDate } from "../services/attendance/index.js";
 import { getDateRangeAttendance, parseMessageForDateRange } from "../services/reportService.js";
-import { getHelpMessage, sendSlackMessage } from "../services/slackService.js";
+import { getHelpMessage, sendSlackMessage } from "../services/slack/index.js";
 
 /**
  * Handle help command
