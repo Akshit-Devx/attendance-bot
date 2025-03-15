@@ -1,10 +1,12 @@
 import express from "express";
 import Message from "../models/messageModel.js";
-import { analyzeCategory } from "../services/openai.js";
+import { analyzeCategory, extractDateRange } from "../services/openai.js";
 import {
   getAttendanceStats,
+  getDateRangeAttendance,
   getHelpMessage,
   getUserInfo,
+  parseMessageForDateRange,
   sendSlackMessage,
 } from "../services/slackService.js";
 
@@ -46,6 +48,21 @@ router.post("/events", async (req, res) => {
           return;
         }
 
+        // Check if it's a report command
+        if (event.text.toLowerCase().includes("report")) {
+          console.log("📊 Report command received");
+
+          // Parse the date range from the message
+          const { startDate, endDate, dateText } = parseMessageForDateRange(event.text);
+
+          if (startDate && endDate) {
+            // Get attendance report for the date range
+            const report = await getDateRangeAttendance(startDate, endDate);
+            await sendSlackMessage(event.channel, `*Attendance Report ${dateText}*\n${report}`);
+            return;
+          }
+        }
+
         const mentionedUserMatch = event.text.match(/<@(\w+)>/g);
         console.log("mentionedUserMatch>>", mentionedUserMatch);
 
@@ -75,8 +92,44 @@ router.post("/events", async (req, res) => {
         messageId: event.ts, // Store messageId to prevent reprocessing
       });
 
+      // Handle multi-day leave messages
+      if (detectedCategory === "MULTI_DAY_LEAVE") {
+        console.log("📅 Multi-day leave detected, extracting date range...");
+        const dateRange = await extractDateRange(event.text);
+
+        if (dateRange.startDate && dateRange.endDate) {
+          newMessage.leaveStartDate = new Date(dateRange.startDate);
+          newMessage.leaveEndDate = new Date(dateRange.endDate);
+          console.log(`📆 Leave dates extracted: ${dateRange.startDate} to ${dateRange.endDate}`);
+        }
+      }
+
       await newMessage.save();
       console.log("✅ Message saved to MongoDB:", newMessage);
+
+      // Send confirmation in thread (optional)
+      if (detectedCategory !== "OTHER") {
+        const categoryMessages = {
+          WFH: "I've recorded that you're working from home today.",
+          FULL_DAY_LEAVE: "I've recorded your full day leave.",
+          HALF_DAY_LEAVE: "I've recorded your half-day leave.",
+          LATE_TO_OFFICE: "I've noted that you'll be arriving late.",
+          LEAVING_EARLY: "I've noted that you'll be leaving early today.",
+          OOO: "I've marked you as out of office.",
+          MULTI_DAY_LEAVE:
+            newMessage.leaveStartDate && newMessage.leaveEndDate
+              ? `I've recorded your leave from ${newMessage.leaveStartDate.toLocaleDateString()} to ${newMessage.leaveEndDate.toLocaleDateString()}.`
+              : "I've recorded your multi-day leave.",
+        };
+
+        // Uncomment this if you want confirmation messages in threads
+        // await slackClient.chat.postMessage({
+        //   channel: event.channel,
+        //   thread_ts: event.ts,
+        //   text: categoryMessages[detectedCategory] || "I've recorded your message.",
+        //   unfurl_links: false,
+        // });
+      }
     } catch (error) {
       console.error("❌ Error saving message:", error);
     }

@@ -20,6 +20,7 @@ const messageSchema = new mongoose.Schema({
       "LATE_TO_OFFICE",
       "LEAVING_EARLY",
       "OOO",
+      "MULTI_DAY_LEAVE",
       "OTHER",
     ],
     required: true,
@@ -27,6 +28,9 @@ const messageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   lastUpdated: { type: Date, default: Date.now },
   messageId: { type: String, required: true, unique: true },
+  // New fields for date ranges
+  leaveStartDate: { type: Date },
+  leaveEndDate: { type: Date },
 });
 
 const Message = mongoose.model("Message", messageSchema);
