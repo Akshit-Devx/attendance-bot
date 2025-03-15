@@ -7,6 +7,9 @@ import { getHelpMessage, getUserInfo, sendSlackMessage } from "../services/slack
 
 const router = express.Router();
 
+// Get the bot ID from environment
+const BOT_ID = process.env.SLACK_BOT_ID || "U08H53KGXM5"; // Using your provided bot ID as fallback
+
 router.post("/events", async (req, res) => {
   console.log("📥 Slack Event Received:", req.body);
 
@@ -33,13 +36,21 @@ router.post("/events", async (req, res) => {
 
       const userName = await getUserInfo(event.user);
 
-      // Check if bot is mentioned
-      if (event.text.includes(`<@${process.env.SLACK_BOT_ID}>`)) {
+      // Check if bot is mentioned - use the BOT_ID constant
+      if (event.text.includes(`<@${BOT_ID}>`)) {
+        console.log(`🤖 Bot mentioned: <@${BOT_ID}>`);
+
         // Check if it's a help command
         if (event.text.toLowerCase().includes("help")) {
           console.log("🆘 Help command received");
-          const helpMessage = getHelpMessage();
-          await sendSlackMessage(event.channel, helpMessage);
+          try {
+            const helpMessage = getHelpMessage();
+            await sendSlackMessage(event.channel, helpMessage);
+            console.log("✅ Help message sent");
+          } catch (error) {
+            console.error("❌ Failed to send help message:", error.message);
+            // Continue with other processing and don't exit
+          }
           return;
         }
 
@@ -158,7 +169,7 @@ router.post("/events", async (req, res) => {
         // });
       }
     } catch (error) {
-      console.error("❌ Error saving message:", error);
+      console.error("❌ Error processing message:", error);
     }
   }
 

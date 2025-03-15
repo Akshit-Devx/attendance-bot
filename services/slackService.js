@@ -1,16 +1,38 @@
 import { WebClient } from "@slack/web-api";
+import dotenv from "dotenv";
 
-const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
+// Ensure environment variables are loaded
+dotenv.config();
+
+// Get bot token from environment variables
+const token = process.env.SLACK_BOT_TOKEN;
+
+// Create Slack client without verification to prevent startup errors
+const slackClient = new WebClient(token);
 
 /**
  * Fetch user information from Slack
  */
 export const getUserInfo = async (userId) => {
   try {
+    // Make API call with validation
+    if (!token) {
+      console.error("❌ SLACK_BOT_TOKEN is missing in environment variables");
+      return "Unknown User";
+    }
+
     const userInfo = await slackClient.users.info({ user: userId });
     return userInfo.user.real_name || userInfo.user.name;
   } catch (error) {
-    console.error("❌ Error fetching Slack user info:", error);
+    console.error("❌ Error fetching Slack user info:", error.message);
+
+    // More helpful error messages
+    if (error.data?.error === "not_authed" || error.data?.error === "invalid_auth") {
+      console.error("Authentication failed. Check your SLACK_BOT_TOKEN.");
+    } else if (error.data?.error === "user_not_found") {
+      console.error(`User not found: ${userId}`);
+    }
+
     return "Unknown User";
   }
 };
@@ -20,9 +42,36 @@ export const getUserInfo = async (userId) => {
  */
 export const sendSlackMessage = async (channel, text) => {
   try {
-    await slackClient.chat.postMessage({ channel, text });
+    // Validate token is present
+    if (!token) {
+      console.error("❌ SLACK_BOT_TOKEN is missing in environment variables");
+      return null;
+    }
+
+    // Log the channel ID for debugging
+    console.log(`Attempting to send message to channel: ${channel}`);
+
+    const result = await slackClient.chat.postMessage({
+      channel,
+      text,
+      unfurl_links: false,
+    });
+
+    console.log("✅ Message sent successfully");
+    return result;
   } catch (error) {
-    console.error("❌ Error sending Slack message:", error);
+    console.error("❌ Error sending Slack message:", error.message);
+
+    if (error.data?.error === "not_authed") {
+      console.error("Authentication failed. Check your SLACK_BOT_TOKEN.");
+    } else if (error.data?.error === "channel_not_found") {
+      console.error(`Channel not found: ${channel}`);
+    } else if (error.data?.error === "missing_scope") {
+      console.error("Bot token missing required scopes. Need 'chat:write' permission.");
+    }
+
+    // Return null instead of throwing to prevent crashes
+    return null;
   }
 };
 
