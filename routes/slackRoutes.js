@@ -13,7 +13,7 @@ import {
 } from "../controllers/eventParser.js";
 import { processMessageEdit, processNewMessage } from "../controllers/messageController.js";
 import Message from "../models/messageModel.js";
-import { getUserInfo } from "../services/slackService.js";
+import { getUserInfo } from "../services/slack/index.js";
 
 const router = express.Router();
 

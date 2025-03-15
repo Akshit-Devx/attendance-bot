@@ -1,66 +1,3 @@
-import { getSlackClient, isTokenAvailable } from "./client.js";
-import { logSlackError } from "./errorHandling.js";
-
-/**
- * Send a message to a Slack channel
- */
-export const sendSlackMessage = async (channel, text) => {
-  try {
-    // Validate token is present
-    if (!isTokenAvailable()) {
-      console.error("❌ SLACK_BOT_TOKEN is missing in environment variables");
-      return null;
-    }
-
-    // Log the channel ID for debugging
-    console.log(`Attempting to send message to channel: ${channel}`);
-
-    const client = getSlackClient();
-    const result = await client.chat.postMessage({
-      channel,
-      text,
-      unfurl_links: false,
-    });
-
-    console.log("✅ Message sent successfully");
-    return result;
-  } catch (error) {
-    console.error("❌ Error sending Slack message:", error.message);
-    logSlackError(error);
-    return null;
-  }
-};
-
-/**
- * Send a message as a reply in a thread
- */
-export const sendThreadMessage = async (channel, thread_ts, text) => {
-  try {
-    // Validate token is present
-    if (!isTokenAvailable()) {
-      console.error("❌ SLACK_BOT_TOKEN is missing in environment variables");
-      return null;
-    }
-
-    console.log(`Attempting to send thread message in channel: ${channel}`);
-
-    const client = getSlackClient();
-    const result = await client.chat.postMessage({
-      channel,
-      thread_ts,
-      text,
-      unfurl_links: false,
-    });
-
-    console.log("✅ Thread message sent successfully");
-    return result;
-  } catch (error) {
-    console.error("❌ Error sending thread message:", error.message);
-    logSlackError(error);
-    return null;
-  }
-};
-
 /**
  * Get help message for the Attendance Bot
  */
@@ -84,7 +21,7 @@ I'm your friendly Attendance Bot! I automatically track attendance-related messa
 *Supported attendance types:*
 • *WFH:* "Working from home today", "WFH", "Remote work today", etc.
 • *Full Day Leave:* "On leave today", "Taking the day off", "Sick leave today", etc.
-• *Half Day Leave:* "Taking half day", "Working partial day", etc.
+• *Half Day Leave:* "Taking half day", "working partial day", etc.
 • *Late Arrival:* "Coming in late", "Will be there by [time]", etc.
 • *Early Departure:* "Leaving early today", "Need to leave at [time]", etc.
 • *Out of Office:* "OOO", "Out of office", "Unavailable today", etc.
