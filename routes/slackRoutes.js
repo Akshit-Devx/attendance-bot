@@ -1,14 +1,9 @@
 import express from "express";
 import Message from "../models/messageModel.js";
+import { getAttendanceStats, getUserAttendanceForDate } from "../services/attendanceService.js";
 import { analyzeCategory, extractDateRange } from "../services/openai.js";
-import {
-  getAttendanceStats,
-  getDateRangeAttendance,
-  getHelpMessage,
-  getUserInfo,
-  parseMessageForDateRange,
-  sendSlackMessage,
-} from "../services/slackService.js";
+import { getDateRangeAttendance, parseMessageForDateRange } from "../services/reportService.js";
+import { getHelpMessage, getUserInfo, sendSlackMessage } from "../services/slackService.js";
 
 const router = express.Router();
 
@@ -84,18 +79,29 @@ router.post("/events", async (req, res) => {
           }
         }
 
+        // Handle user-specific attendance query
         const mentionedUserMatch = event.text.match(/<@(\w+)>/g);
         console.log("mentionedUserMatch>>", mentionedUserMatch);
 
         if (mentionedUserMatch && mentionedUserMatch.length > 1) {
           const mentionedUserId = mentionedUserMatch[1].replace(/[<>@]/g, "");
-          const attendanceStats = await getAttendanceStats(mentionedUserId);
 
-          await sendSlackMessage(
-            event.channel,
-            `<@${mentionedUserId}>'s Attendance: ${attendanceStats}`
-          );
+          // Check if the request includes a date specification
+          const { startDate, endDate, dateText } = parseMessageForDateRange(event.text);
 
+          if (startDate && endDate) {
+            // User attendance for specific date range
+            console.log(
+              `🗓️ Getting attendance for user ${mentionedUserId} for date range ${dateText}`
+            );
+            const report = await getUserAttendanceForDate(mentionedUserId, startDate, endDate);
+            await sendSlackMessage(event.channel, report);
+          } else {
+            // Regular user stats (all time)
+            console.log(`📊 Getting general attendance stats for user ${mentionedUserId}`);
+            const attendanceStats = await getAttendanceStats(mentionedUserId);
+            await sendSlackMessage(event.channel, attendanceStats);
+          }
           return;
         }
       }
