@@ -1,4 +1,5 @@
 import express from "express";
+import { handleCalendarCommand } from "../controllers/calendarController.js";
 import {
   handleHelpCommand,
   handleReportCommand,
@@ -7,6 +8,7 @@ import {
 import {
   extractMentionedUserId,
   getMentionedUsers,
+  isCalendarCommand,
   isCommand,
   isHelpCommand,
   isReportCommand,
@@ -82,6 +84,12 @@ async function handleNewMessage(event) {
       // Check for report command
       if (isReportCommand(event.text)) {
         await handleReportCommand(event);
+        return;
+      }
+
+      // Check for calendar command
+      if (isCalendarCommand(event.text)) {
+        await handleCalendarCommand(event);
         return;
       }
 

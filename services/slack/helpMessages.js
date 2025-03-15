@@ -17,6 +17,7 @@ I'm your friendly Attendance Bot! I automatically track attendance-related messa
 • \`@attendance report yesterday\` - Get yesterday's attendance report
 • \`@attendance report tomorrow\` - Get tomorrow's attendance report
 • \`@attendance report from 4th March to 10th March\` - Get attendance report for a specific date range
+• \`@attendance calendar this week\` - Get a weekly calendar view showing who's in/out
 
 *Supported attendance types:*
 • *WFH:* "Working from home today", "WFH", "Remote work today", etc.

@@ -30,6 +30,13 @@ export const isReportCommand = (text) => {
 };
 
 /**
+ * Check if message is a calendar command
+ */
+export const isCalendarCommand = (text) => {
+  return text.toLowerCase().includes("calendar");
+};
+
+/**
  * Extract all mentioned user IDs
  */
 export const getMentionedUsers = (text) => {
