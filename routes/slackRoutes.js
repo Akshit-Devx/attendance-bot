@@ -3,7 +3,12 @@ import Message from "../models/messageModel.js";
 import { getAttendanceStats, getUserAttendanceForDate } from "../services/attendanceService.js";
 import { analyzeCategory, extractDateRange } from "../services/openai.js";
 import { getDateRangeAttendance, parseMessageForDateRange } from "../services/reportService.js";
-import { getHelpMessage, getUserInfo, sendSlackMessage } from "../services/slackService.js";
+import {
+  getHelpMessage,
+  getUserInfo,
+  sendSlackMessage,
+  sendThreadMessage,
+} from "../services/slackService.js";
 
 const router = express.Router();
 
@@ -160,13 +165,16 @@ router.post("/events", async (req, res) => {
               : "I've recorded your multi-day leave.",
         };
 
-        // Uncomment this if you want confirmation messages in threads
-        // await slackClient.chat.postMessage({
-        //   channel: event.channel,
-        //   thread_ts: event.ts,
-        //   text: categoryMessages[detectedCategory] || "I've recorded your message.",
-        //   unfurl_links: false,
-        // });
+        // Use the imported sendThreadMessage function instead of direct slackClient call
+        try {
+          await sendThreadMessage(
+            event.channel,
+            event.ts,
+            categoryMessages[detectedCategory] || "I've recorded your message."
+          );
+        } catch (error) {
+          console.error("❌ Failed to send thread message:", error.message);
+        }
       }
     } catch (error) {
       console.error("❌ Error processing message:", error);

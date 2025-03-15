@@ -76,6 +76,42 @@ export const sendSlackMessage = async (channel, text) => {
 };
 
 /**
+ * Send a message as a reply in a thread
+ */
+export const sendThreadMessage = async (channel, thread_ts, text) => {
+  try {
+    // Validate token is present
+    if (!token) {
+      console.error("❌ SLACK_BOT_TOKEN is missing in environment variables");
+      return null;
+    }
+
+    console.log(`Attempting to send thread message in channel: ${channel}`);
+
+    const result = await slackClient.chat.postMessage({
+      channel,
+      thread_ts,
+      text,
+      unfurl_links: false,
+    });
+
+    console.log("✅ Thread message sent successfully");
+    return result;
+  } catch (error) {
+    console.error("❌ Error sending thread message:", error.message);
+
+    if (error.data?.error === "not_authed") {
+      console.error("Authentication failed. Check your SLACK_BOT_TOKEN.");
+    } else if (error.data?.error === "channel_not_found") {
+      console.error(`Channel not found: ${channel}`);
+    }
+
+    // Return null instead of throwing to prevent crashes
+    return null;
+  }
+};
+
+/**
  * Get help message for the Attendance Bot
  */
 export const getHelpMessage = () => {

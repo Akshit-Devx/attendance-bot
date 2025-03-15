@@ -95,10 +95,12 @@ Rules:
 7. For "until Friday" or similar, calculate the date of the upcoming Friday.
 8. If no clear dates are mentioned, return null for both start and end date.
 
-Return your response in JSON format with startDate and endDate as ISO strings (YYYY-MM-DD), like:
+Current date for reference: ${new Date().toISOString().split("T")[0]}
+
+Return your response in this exact JSON format (as a string):
 {
-  "startDate": "2023-03-02",
-  "endDate": "2023-03-06"
+  "startDate": "YYYY-MM-DD",
+  "endDate": "YYYY-MM-DD"
 }
 
 If you cannot determine the dates, return:
@@ -106,18 +108,40 @@ If you cannot determine the dates, return:
   "startDate": null,
   "endDate": null
 }
+
+Important: Return ONLY the JSON string and nothing else.
 `;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4", // Or "gpt-3.5-turbo" if needed
       messages: [{ role: "system", content: prompt }],
       temperature: 0.1,
-      response_format: { type: "json_object" },
+      // Remove response_format parameter as it's not supported by all models
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
-    console.log("✅ Extracted date range:", result);
-    return result;
+    // Parse the response text as JSON
+    const responseText = response.choices[0].message.content.trim();
+
+    // Try to extract JSON from the response
+    let jsonStr = responseText;
+
+    // Handle cases where GPT may add extra text around the JSON
+    if (responseText.includes("{") && responseText.includes("}")) {
+      jsonStr = responseText.substring(
+        responseText.indexOf("{"),
+        responseText.lastIndexOf("}") + 1
+      );
+    }
+
+    try {
+      const result = JSON.parse(jsonStr);
+      console.log("✅ Extracted date range:", result);
+      return result;
+    } catch (parseError) {
+      console.error("❌ Error parsing JSON from OpenAI response:", parseError);
+      console.log("Response received:", responseText);
+      return { startDate: null, endDate: null };
+    }
   } catch (error) {
     console.error("❌ OpenAI Error extracting date range:", error);
     return { startDate: null, endDate: null };

@@ -33,5 +33,5 @@ const messageSchema = new mongoose.Schema({
   leaveEndDate: { type: Date },
 });
 
-const Message = mongoose.model("Message", messageSchema);
+const Message = mongoose.model("Message-1", messageSchema);
 export default Message;
